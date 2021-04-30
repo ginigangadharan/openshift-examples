@@ -1,0 +1,25 @@
+name: ChatOps
+on:
+  issue_comment:
+    types: [ created,updated ] 
+    
+jobs:
+  command:
+    runs-on: ubuntu-latest    
+    steps:
+    - uses: jungwinter/split@v1
+      id: split
+      with:
+        msg: ${{ github.event.comment.body }} 
+    - uses: peter-evans/repository-dispatch@v1
+      if: steps.split.outputs._0 == '/release' && steps.split.outputs._2 == 'qa'
+      with:
+        token: ${{ secrets.REPO_ACCESS_TOKEN }}
+        event-type: release-to-env
+        client-payload: '{ "tag": "${{steps.split.outputs._1}}" ,"prerelease": true }'
+    - uses: peter-evans/repository-dispatch@v1
+      if: steps.split.outputs._0 == '/release' && steps.split.outputs._2 == 'prod'
+      with:
+        token: ${{ secrets.REPO_ACCESS_TOKEN }}
+        event-type: release-to-env
+        client-payload: '{ "tag": "${{steps.split.outputs._1}}" ,"prerelease": false }'
